@@ -1,62 +1,73 @@
 "use client"
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Send, ChevronLeft, User } from 'lucide-react'
+import { Send, ArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 
-export default function LiveChat() {
-  const [myProfil, setMyProfil] = useState('Salsa')
-  const [input, setInput] = useState('')
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Halo Yudi!", sender: "Salsa" },
-    { id: 2, text: "Halo Salsa, semangat kerjanya!", sender: "Yudi" },
+export default function ChatKita() {
+  const [pesan, setPesan] = useState('')
+  const [currentUser, setCurrentUser] = useState('Salsa') // Default
+  const [chatHistory, setChatHistory] = useState([
+    { pengirim: 'Yudi', teks: 'Semangat jualan vouchernya hari ini, Sayang! ❤️' },
+    { pengirim: 'Salsa', teks: 'Iyaaa, ini lagi rekap stok dulu hihi.' },
   ])
 
+  // AMBIL PROFIL DARI LOGIN
   useEffect(() => {
-    const saved = localStorage.getItem('userProfil')
-    if (saved) setMyProfil(saved)
+    const savedUser = localStorage.getItem('userProfil')
+    if (savedUser) setCurrentUser(savedUser)
   }, [])
 
-  const sendMessage = () => {
-    if (!input.trim()) return
-    const newMsg = { id: Date.now(), text: input, sender: myProfil }
-    setMessages([...messages, newMsg])
-    setInput('')
+  const kirimPesan = () => {
+    if (!pesan.trim()) return
+    setChatHistory([...chatHistory, { pengirim: currentUser, teks: pesan }])
+    setPesan('')
   }
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#F0F9FF] flex flex-col font-sans">
       {/* HEADER CHAT */}
-      <div className="bg-white p-4 flex items-center gap-4 border-b shadow-sm">
-        <Link href="/dashboard"><ChevronLeft className="text-gray-400" /></Link>
-        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-md">
-          <User size={20} />
-        </div>
-        <div>
-          <h2 className="font-black text-gray-800 text-sm uppercase">{myProfil} (Profil Anda)</h2>
-          <p className="text-[10px] text-green-500 font-bold uppercase tracking-tighter animate-pulse">● Online Terus</p>
+      <div className="bg-white p-5 shadow-md flex items-center gap-4 sticky top-0 z-10">
+        <Link href="/dashboard" className="p-2 bg-gray-100 rounded-full text-gray-500">
+          <ArrowLeft size={20} />
+        </Link>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white">
+            <User size={20} />
+          </div>
+          <div>
+            <h2 className="text-sm font-black text-gray-800 uppercase italic">Chat Bersama</h2>
+            <p className="text-[9px] font-bold text-green-500 uppercase tracking-widest">
+              Login Sebagai: {currentUser}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* AREA PESAN */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-white to-orange-50/30">
-        {messages.map((msg) => {
-          // LOGIKA POSISI: Salsa selalu di KIRI, Yudi selalu di KANAN
-          const isSalsa = msg.sender === 'Salsa'
-          
+      {/* AREA CHAT */}
+      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+        {chatHistory.map((c, i) => {
+          // LOGIKA POSISI: 
+          // Jika pengirim sama dengan user yang login -> KANAN
+          // Jika berbeda -> KIRI
+          const isMe = c.pengirim === currentUser
+
           return (
-            <motion.div key={msg.id} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              className={`flex w-full ${isSalsa ? 'justify-start' : 'justify-end'}`}
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, x: isMe ? 20 : -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[80%] p-4 rounded-[25px] shadow-sm font-bold text-sm ${
-                isSalsa 
-                ? 'bg-white text-gray-800 rounded-bl-none border border-orange-100' 
-                : 'bg-orange-500 text-white rounded-br-none shadow-orange-200'
+              <div className={`max-w-[80%] p-4 rounded-[25px] shadow-sm ${
+                isMe 
+                ? 'bg-orange-500 text-white rounded-tr-none' 
+                : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
               }`}>
-                <p className={`text-[9px] uppercase mb-1 opacity-60 ${isSalsa ? 'text-orange-500' : 'text-orange-100'}`}>
-                  {msg.sender}
+                <p className={`text-[8px] font-black mb-1 uppercase opacity-70 ${isMe ? 'text-right' : 'text-left'}`}>
+                  {c.pengirim}
                 </p>
-                {msg.text}
+                <p className="text-sm font-medium leading-relaxed">{c.teks}</p>
               </div>
             </motion.div>
           )
@@ -64,9 +75,20 @@ export default function LiveChat() {
       </div>
 
       {/* INPUT PESAN */}
-      <div className="p-4 bg-white border-t flex gap-2 items-center">
-        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." className="flex-1 bg-gray-100 p-4 rounded-2xl text-sm font-bold text-gray-900 outline-none focus:bg-gray-50 border-2 border-transparent focus:border-orange-200" />
-        <button onClick={sendMessage} className="bg-orange-500 p-4 rounded-2xl text-white shadow-lg shadow-orange-200"><Send size={20} /></button>
+      <div className="p-4 bg-white border-t border-gray-100 flex gap-2 items-center sticky bottom-0">
+        <input 
+          type="text" 
+          value={pesan}
+          onChange={(e) => setPesan(e.target.value)}
+          placeholder="Ketik sesuatu..."
+          className="flex-1 bg-gray-50 p-4 rounded-2xl outline-none text-sm font-bold border focus:border-orange-400 transition-all"
+        />
+        <button 
+          onClick={kirimPesan}
+          className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-200 active:scale-90 transition-all"
+        >
+          <Send size={20} />
+        </button>
       </div>
     </div>
   )
