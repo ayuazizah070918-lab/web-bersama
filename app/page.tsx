@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, Gamepad2, User, Calculator, X, History, Trash2, Bot, Send, Loader2, Coins, Package, LogOut } from 'lucide-react'
+import { MessageCircle, Gamepad2, User, Calculator, X, History, Trash2, Bot, Send, Loader2, Coins, Package, LogOut, Wallet } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Home() {
@@ -17,6 +17,7 @@ export default function Home() {
   const [isLoadingAi, setIsLoadingAi] = useState(false)
   
   const [chipData, setChipData] = useState({ hargaJual: 65000, masuk: 0, keluar: 0 })
+  const [adminData, setAdminData] = useState({ dana: 0, chip: 0 }) // State baru untuk Admin
   const [vocers, setVocers] = useState([
     { nama: 'Axis 3GB', rumus: '0', harga: 15000 },
     { nama: 'Axis 5GB', rumus: '0', harga: 20000 },
@@ -50,7 +51,6 @@ export default function Home() {
 
   const hitungStok = (rumus: string) => {
     try { 
-      // Membersihkan rumus dari karakter berbahaya sebelum eval
       const cleanRumus = rumus.replace(/[^-+*/0-9.]/g, '')
       return eval(cleanRumus) || 0 
     } catch { return 0 }
@@ -67,7 +67,8 @@ export default function Home() {
     } catch { setCalcInput('Error') }
   }
 
-  const totalSemua = vocers.reduce((acc, v) => acc + (hitungStok(v.rumus) * v.harga), 0) + (chipData.keluar * chipData.hargaJual)
+  // Menambahkan adminData.dana dan adminData.chip ke total keseluruhan
+  const totalSemua = vocers.reduce((acc, v) => acc + (hitungStok(v.rumus) * v.harga), 0) + (chipData.keluar * chipData.hargaJual) + adminData.dana + adminData.chip
 
   // --- 3. FUNGSI AI (GEMINI) ---
   const tanyaGemini = async () => {
@@ -110,7 +111,7 @@ export default function Home() {
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md bg-white rounded-[40px] p-10 shadow-2xl text-center">
           <div className="w-20 h-20 bg-orange-500 rounded-3xl mx-auto mb-6 flex items-center justify-center text-white shadow-lg"><User size={40} /></div>
           <h2 className="text-2xl font-black text-gray-800 mb-2 italic">PILIH PROFIL</h2>
-          <p className="text-gray-400 text-xs font-bold mb-8 uppercase tracking-widest">Web Pro v5.3</p>
+          <p className="text-gray-400 text-xs font-bold mb-8 uppercase tracking-widest">Web Pro v5.4</p>
           <div className="space-y-4">
             <button onClick={() => handleLogin('Yudi')} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg active:scale-95 transition-all shadow-lg shadow-blue-100 uppercase italic">Yudi Account</button>
             <button onClick={() => handleLogin('Salsa')} className="w-full bg-orange-500 text-white py-5 rounded-2xl font-black text-lg active:scale-95 transition-all shadow-lg shadow-orange-100 uppercase italic">Salsa Account</button>
@@ -130,7 +131,7 @@ export default function Home() {
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-lg"><User size={28} /></div>
             <div>
               <h1 className="text-xl font-black italic uppercase tracking-tighter">Halo, {userLogin}!</h1>
-              <p className="text-orange-100 text-[10px] font-bold uppercase tracking-widest italic">Web Pro v5.3 (Online)</p>
+              <p className="text-orange-100 text-[10px] font-bold uppercase tracking-widest italic">Web Pro v5.4 (Online)</p>
             </div>
           </div>
           <button onClick={handleLogout} className="bg-white/20 p-3 rounded-2xl active:bg-white/40 transition-all"><LogOut size={20}/></button>
@@ -145,6 +146,22 @@ export default function Home() {
       </div>
 
       <div className="px-6 space-y-6">
+        
+        {/* FITUR ADMIN TRANSAKSI (BARU) */}
+        <section className="bg-white p-5 rounded-[30px] shadow-sm border border-gray-100">
+           <div className="flex items-center gap-2 mb-4 font-black text-gray-800 uppercase text-xs italic"><Wallet className="text-purple-500" size={18}/> Admin Transaksi</div>
+           <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Admin Dana</label>
+                <input type="number" value={adminData.dana} onChange={(e) => setAdminData({...adminData, dana: Number(e.target.value)})} className="w-full bg-purple-50 p-3 rounded-xl font-bold text-lg outline-none border border-purple-100 text-purple-600 text-center focus:border-purple-300" placeholder="0" />
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Admin Chip</label>
+                <input type="number" value={adminData.chip} onChange={(e) => setAdminData({...adminData, chip: Number(e.target.value)})} className="w-full bg-purple-50 p-3 rounded-xl font-bold text-lg outline-none border border-purple-100 text-purple-600 text-center focus:border-purple-300" placeholder="0" />
+              </div>
+           </div>
+        </section>
+
         {/* FITUR CHIP DOMINO */}
         <section className="bg-white p-5 rounded-[30px] shadow-sm border border-gray-100">
            <div className="flex items-center gap-2 mb-4 font-black text-gray-800 uppercase text-xs italic"><Coins className="text-orange-500" size={18}/> Chip Domino</div>
