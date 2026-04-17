@@ -15,7 +15,6 @@ export default function DashboardSalsa() {
   const [aiResponse, setAiResponse] = useState('')
   const [isLoadingAi, setIsLoadingAi] = useState(false)
 
-  // FITUR CHIP YANG TADI HILANG SUDAH BALIK:
   const [chipData, setChipData] = useState({ hargaJual: 65000, masuk: 0, keluar: 0 })
   
   const [vocers, setVocers] = useState([
@@ -41,11 +40,17 @@ export default function DashboardSalsa() {
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
+      
+      if (!apiKey) {
+        setAiResponse("Error: API Key belum dipasang di Environment Variables Vercel.")
+        setIsLoadingAi(false)
+        return
+      }
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'X-goog-api-key': apiKey 
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: aiPrompt }] }]
@@ -53,21 +58,25 @@ export default function DashboardSalsa() {
       })
 
       const data = await response.json()
+      
       if (data.error) {
         setAiResponse(`Error: ${data.error.message}`)
-      } else if (data.candidates) {
+      } else if (data.candidates && data.candidates[0].content) {
         setAiResponse(data.candidates[0].content.parts[0].text)
         setAiPrompt('')
       }
     } catch (error) {
-      setAiResponse("Koneksi gagal. Cek internet kamu.")
+      setAiResponse("Koneksi gagal. Pastikan internet aktif dan API Key benar.")
     } finally {
       setIsLoadingAi(false)
     }
   }
 
   const hitungStok = (rumus: string) => {
-    try { return eval(rumus.replace(/[^-+*/0-9.]/g, '')) || 0 } catch { return 0 }
+    try { 
+        // @ts-ignore
+        return eval(rumus.replace(/[^-+*/0-9.]/g, '')) || 0 
+    } catch { return 0 }
   }
 
   const updateVocer = (index: number, field: string, val: string) => {
@@ -93,7 +102,6 @@ export default function DashboardSalsa() {
     localStorage.removeItem('calcHistory')
   }
 
-  // HITUNG TOTAL: (Voucher) + (Chip Keluar * Harga Jual)
   const totalSemua = vocers.reduce((acc, v) => acc + (hitungStok(v.rumus) * v.harga), 0) + (chipData.keluar * chipData.hargaJual)
 
   return (
@@ -119,7 +127,7 @@ export default function DashboardSalsa() {
       </div>
 
       <div className="px-6 space-y-6">
-        {/* FITUR CHIP (SUDAH KEMBALI) */}
+        {/* FITUR CHIP */}
         <section className="bg-white p-5 rounded-[30px] shadow-sm border border-gray-100">
            <div className="flex items-center gap-2 mb-4 font-black text-gray-800 uppercase text-xs italic"><Coins className="text-orange-500" size={18}/> Chip Domino</div>
            <div className="grid grid-cols-2 gap-3 mb-3">
