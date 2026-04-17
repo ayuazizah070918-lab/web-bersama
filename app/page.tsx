@@ -30,14 +30,12 @@ export default function Home() {
   const [adminData, setAdminData] = useState(defaultAdmin)
   const [vocers, setVocers] = useState(defaultVocers)
 
-  // Efek Transisi Khas iOS (FIXED FOR VERCEL)
   const iosTransition: any = { type: "spring", stiffness: 300, damping: 30 };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('userProfil')
     if (savedUser) { setUserLogin(savedUser); setIsLoggedIn(true); }
     
-    // Load semua data agar tetap permanen
     setCalcHistory(JSON.parse(localStorage.getItem('calcHistory') || '[]'))
     setChipData(JSON.parse(localStorage.getItem('chipDataStorage') || JSON.stringify(defaultChip)))
     setAdminData(JSON.parse(localStorage.getItem('adminDataStorage') || JSON.stringify(defaultAdmin)))
@@ -55,14 +53,12 @@ export default function Home() {
   }, [chipData, adminData, vocers, aiChatHistory, isLoggedIn])
 
   const handleLogin = (name: string) => {
-    setUserLogin(name)
-    setIsLoggedIn(true)
+    setUserLogin(name); setIsLoggedIn(true);
     localStorage.setItem('userProfil', name)
   }
 
   const handleLogout = () => {
-    setIsLoggedIn(false)
-    localStorage.removeItem('userProfil')
+    setIsLoggedIn(false); localStorage.removeItem('userProfil');
   }
 
   const resetSemuaHitungan = () => {
@@ -78,21 +74,27 @@ export default function Home() {
   const calculateResult = () => {
     try {
       if (!calcInput) return
-      const result = eval(calcInput).toString()
-      const newHistory = [`${calcInput} = ${result}`, ...calcHistory].slice(0, 10)
-      setCalcHistory(newHistory)
-      localStorage.setItem('calcHistory', JSON.stringify(newHistory))
-      setCalcInput(result)
+      const resValue = eval(calcInput).toString()
+      const newHist = [`${calcInput} = ${resValue}`, ...calcHistory].slice(0, 10)
+      setCalcHistory(newHist)
+      localStorage.setItem('calcHistory', JSON.stringify(newHist))
+      setCalcInput(resValue)
     } catch { setCalcInput('Error') }
+  }
+
+  const clearCalcHistory = () => {
+    if(confirm('Hapus riwayat kalkulator?')) {
+      setCalcHistory([]); localStorage.removeItem('calcHistory');
+    }
   }
 
   const totalSemua = vocers.reduce((acc, v) => acc + (hitungStok(v.rumus) * v.harga), 0) + (chipData.keluar * chipData.hargaJual) + adminData.dana + adminData.chip
 
   const tanyaGemini = async () => {
-    if (!aiPrompt.trim()) return
+    if (!aiPrompt.trim() || isLoadingAi) return
     const userMsg = { role: 'user', text: aiPrompt }
-    const updatedHistory = [...aiChatHistory, userMsg]
-    setAiChatHistory(updatedHistory)
+    const historySaatIni = [...aiChatHistory, userMsg]
+    setAiChatHistory(historySaatIni)
     setAiPrompt('')
     setIsLoadingAi(true)
     
@@ -101,13 +103,13 @@ export default function Home() {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: aiPrompt }] }] })
+        body: JSON.stringify({ contents: [{ parts: [{ text: userMsg.text }] }] })
       })
       const data = await response.json()
-      const aiMsg = { role: 'ai', text: data.candidates[0].content.parts[0].text }
-      setAiChatHistory([...updatedHistory, aiMsg])
+      const aiResponse = data.candidates[0].content.parts[0].text
+      setAiChatHistory([...historySaatIni, { role: 'ai', text: aiResponse }])
     } catch (error) {
-      setAiChatHistory([...updatedHistory, { role: 'ai', text: "Koneksi terputus. Coba lagi nanti." }])
+      setAiChatHistory([...historySaatIni, { role: 'ai', text: "Koneksi terputus. Pastikan API Key benar." }])
     } finally { setIsLoadingAi(false) }
   }
 
@@ -116,11 +118,10 @@ export default function Home() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={iosTransition} className="w-full max-w-md bg-white rounded-[40px] p-10 shadow-xl text-center border border-gray-100">
           <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl mx-auto mb-6 flex items-center justify-center text-white shadow-lg shadow-orange-200"><User size={40} /></div>
-          <h2 className="text-2xl font-black text-gray-800 mb-2 italic tracking-tight">LOGIN DASHBOARD</h2>
-          <p className="text-gray-400 text-[10px] font-bold mb-8 uppercase tracking-[0.2em]">Premium Web-App v5.6</p>
-          <div className="space-y-4">
-            <button onClick={() => handleLogin('Yudi')} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg active:scale-[0.97] transition-all shadow-md uppercase italic">Yudi Account</button>
-            <button onClick={() => handleLogin('Salsa')} className="w-full bg-orange-500 text-white py-5 rounded-2xl font-black text-lg active:scale-[0.97] transition-all shadow-md uppercase italic">Salsa Account</button>
+          <h2 className="text-2xl font-black text-gray-800 mb-2 italic tracking-tight uppercase">Dashboard</h2>
+          <div className="space-y-4 mt-8">
+            <button onClick={() => handleLogin('Yudi')} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg active:scale-[0.97] transition-all uppercase italic">Yudi Account</button>
+            <button onClick={() => handleLogin('Salsa')} className="w-full bg-orange-500 text-white py-5 rounded-2xl font-black text-lg active:scale-[0.97] transition-all uppercase italic">Salsa Account</button>
           </div>
         </motion.div>
       </div>
@@ -194,7 +195,7 @@ export default function Home() {
         {isAiOpen && (
           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={iosTransition} className="fixed inset-0 bg-white z-[60] flex flex-col font-sans">
             <div className="p-5 border-b flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0">
-              <div className="flex items-center gap-2"><Bot className="text-purple-600" size={24}/><span className="font-black italic text-xs uppercase">AI Assistant</span></div>
+              <div className="flex items-center gap-2"><Bot className="text-purple-600" size={24}/><span className="font-black italic text-xs uppercase text-gray-400">Ai Assistant</span></div>
               <button onClick={() => setIsAiOpen(false)} className="p-2 bg-gray-100 rounded-full"><X size={20}/></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
@@ -208,7 +209,7 @@ export default function Home() {
               {isLoadingAi && <div className="flex justify-start"><div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100"><Loader2 className="animate-spin text-purple-600" size={20}/></div></div>}
             </div>
             <div className="p-5 bg-white border-t flex gap-2">
-              <input type="text" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && tanyaGemini()} placeholder="Tanya sesuatu..." className="flex-1 bg-gray-100 p-4 rounded-2xl outline-none text-sm font-bold border-transparent focus:border-purple-300 transition-all" />
+              <input type="text" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && tanyaGemini()} placeholder="Tanya sesuatu..." className="flex-1 bg-gray-100 p-4 rounded-2xl outline-none text-sm font-bold" />
               <button onClick={tanyaGemini} disabled={isLoadingAi} className="w-14 h-14 bg-purple-600 text-white rounded-2xl flex items-center justify-center active:scale-90 disabled:opacity-50 shadow-lg shadow-purple-100">{isLoadingAi ? <Loader2 className="animate-spin" size={20}/> : <Send size={20}/>}</button>
             </div>
           </motion.div>
@@ -218,13 +219,16 @@ export default function Home() {
       <AnimatePresence>
         {isCalcOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end">
-             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={iosTransition} className="w-full bg-white rounded-t-[40px] p-8 shadow-2xl max-h-[90vh]">
+             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={iosTransition} className="w-full bg-white rounded-t-[40px] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
                <div className="flex justify-between items-center mb-6">
                  <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase"><History size={14}/> History</div>
-                 <button onClick={() => setIsCalcOpen(false)} className="p-2 bg-gray-100 rounded-full"><X size={20}/></button>
+                 <div className="flex gap-2">
+                    <button onClick={clearCalcHistory} className="p-2 text-red-500 bg-red-50 rounded-full active:scale-75 transition-all"><Trash2 size={16}/></button>
+                    <button onClick={() => setIsCalcOpen(false)} className="p-2 bg-gray-100 rounded-full"><X size={20}/></button>
+                 </div>
                </div>
-               <div className="bg-gray-50 p-3 rounded-2xl mb-4 max-h-24 overflow-y-auto border border-dashed text-[10px] font-bold text-gray-400 italic">
-                 {calcHistory.map((h, i) => <div key={i} className="border-b pb-1 mb-1">{h}</div>)}
+               <div className="bg-gray-50 p-4 rounded-2xl mb-4 max-h-32 overflow-y-auto border border-dashed text-[11px] font-bold text-gray-400">
+                 {calcHistory.length > 0 ? calcHistory.map((h, i) => <div key={i} className="border-b border-gray-100 py-1">{h}</div>) : "Tidak ada riwayat"}
                </div>
                <div className="bg-gray-900 p-8 rounded-[32px] mb-6 text-right text-5xl font-black text-orange-400 shadow-inner overflow-hidden">{calcInput || '0'}</div>
                <div className="grid grid-cols-4 gap-3">
